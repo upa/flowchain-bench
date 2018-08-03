@@ -226,6 +226,43 @@ int fc_rx(struct fc fc)
 	return 0;
 }
 
+int fc_ctl(char *buf, struct fc *fc)
+{
+	/* process cmd string.
+	 * syntax is : [CMD] [STRING]
+	 * - 1. GET [URL]
+	 * - 2. ECHO [STRING]
+	 */
+
+	char *cmd, *str, *p;
+	struct timeval tv;
+
+	/* parse buf */
+	for (p = buf; *p != '\0'; p++) {
+		if (*p == '\n') *p = '\0';
+	}
+	for (cmd = buf, str = buf; *str != ' ' && *str != '\0'; str++);
+	for (; *str == ' '; str++) *str = '\0';
+
+
+	if (strncmp(cmd, "GET", 3) == 0) {
+		/* send GET request to specified URL */
+		printf("GET\n");
+
+	} else if (strncmp(cmd, "ECHO", 4) == 0) {
+		/* echo string to stdout */
+		gettimeofday(&tv, NULL);
+		printf("TS=%ld ECHO %s\n", tv2l(tv), str);
+
+	} else {
+		gettimeofday(&tv, NULL);
+		printf("TS=%ld ERROR invalid command '%s'\n", tv2l(tv), cmd);
+		return -1;
+	}
+
+	return 0;
+}
+
 
 void * fc_ctl_thread(void *param)
 {
@@ -276,7 +313,7 @@ void * fc_ctl_thread(void *param)
 			perror("read");
 			continue;
 		}
-		printf("%s\n", buf);
+		fc_ctl(buf, fc);
 	}
 
 	close(sock);
