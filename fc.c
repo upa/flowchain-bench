@@ -57,6 +57,11 @@ struct fc {
 	int port;
 
 	char un_path[UNIX_PATH_MAX];
+
+	struct in_addr fc_addr; /* flowchain REST address */
+
+	int print_when_ttl_changed;
+	int print_result_budget;
 };
 
 
@@ -154,6 +159,7 @@ int fc_rx(struct fc fc)
 	 * and receive and dump packets */
 
 	int sock, rc, v = 1;
+	int ttl, last_ttl = 0;
 	struct sockaddr_in sin;
 	struct fc_probe *probe;
 	struct timeval tv;
@@ -163,6 +169,7 @@ int fc_rx(struct fc fc)
 	struct msghdr msg;
 	struct iovec iov;
 	struct pollfd x;
+	int budget;
 
 	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
@@ -217,12 +224,72 @@ int fc_rx(struct fc fc)
 			perror("recvmsg\n");
 			return -1;
 		}
-		printf("TS=%ld TTL=%d DIFF=%ld\n", tv2l(tv),
-		       find_recv_ttl(&msg),
-		       tv2l(tv) - tv2l(probe->ts));
+
+		ttl = find_recv_ttl(&msg);
+
+		if (fc.print_when_ttl_changed) {
+			if (ttl != last_ttl) {
+				/* ttl is changed */
+				budget = fc.print_result_budget;
+			} 
+
+			if (budget-- > 0) {
+				/* if ttl is unchanged, print this
+				 * untill budget becomes empty */
+				printf("TS=%ld TTL=%d DIFF=%ld\n",
+				       tv2l(tv), ttl,
+				       tv2l(tv) - tv2l(probe->ts));
+			}
+		} else {
+			printf("TS=%ld TTL=%d DIFF=%ld\n",
+			       tv2l(tv), ttl,
+			       tv2l(tv) - tv2l(probe->ts));
+		}
+		last_ttl = ttl;
 	}
 		
 	close(sock);
+	return 0;
+}
+
+int fc_url_get(char *url, struct fc *fc)
+{
+	int sock, rc;
+	char buf[2048];
+	struct sockaddr_in sin;
+	struct timeval before, after;
+
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) {
+		pr_err("failed to create http socket\n");
+		perror("socket");
+	}
+
+	sin.sin_family = AF_INET;
+	sin.sin_addr = fc->fc_addr;
+	sin.sin_port = htons(5000); /* Skimped hard coding... */
+	
+	if (connect(sock, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
+		pr_err("failed to connect flowchain REST addr\n");
+		perror("connect");
+		return -1;
+	}
+
+	snprintf(buf, sizeof(buf), "GET %s\r\n", url);
+	gettimeofday(&before, NULL);
+	rc = write(sock, buf, strlen(buf));
+	gettimeofday(&after, NULL);
+	if (rc < 0) {
+		perror("write");
+		return rc;
+	}
+
+	printf("TS=%ld START=%ld END=%ld DIFF=%ld URL=%s\n",
+	       tv2l(after), tv2l(before), tv2l(after),
+	       tv2l(after) - tv2l(before), url);
+
+	close(sock);
+
 	return 0;
 }
 
@@ -247,7 +314,7 @@ int fc_ctl(char *buf, struct fc *fc)
 
 	if (strncmp(cmd, "GET", 3) == 0) {
 		/* send GET request to specified URL */
-		printf("GET\n");
+		fc_url_get(str, fc);
 
 	} else if (strncmp(cmd, "ECHO", 4) == 0) {
 		/* echo string to stdout */
@@ -331,6 +398,8 @@ void usage(void) {
 	       "\t -p: port number, default 60000\n"
 	       "\t -t: TTL of probe packets, default 64\n"
 	       "\t -P: control thread Listen port, default 60001\n"
+	       "\t -f: FlowChain address\n"
+	       "\t -T: print if TTL is changed\n"
 		);
 }
 
@@ -346,9 +415,11 @@ int main(int argc, char **argv)
 	fc.interval = 1000;
 	fc.port = 60000;
 	fc.ttl = 64;
+	fc.print_when_ttl_changed = 0;
+	fc.print_result_budget = 1;
 	strncpy(fc.un_path, "/tmp/fc.sock", UNIX_PATH_MAX);
 	
-	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:P:")) != -1) {
+	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:P:f:TB:")) != -1) {
 		switch (ch) {
 		case 'm' :
 			if (strncmp(optarg, "tx", 2) == 0)
@@ -398,6 +469,22 @@ int main(int argc, char **argv)
 
 		case 'u' :
 			strncpy(fc.un_path, optarg, UNIX_PATH_MAX);
+			break;
+
+		case 'f' :
+			if (inet_pton(AF_INET, optarg, &fc.fc_addr) < 1) {
+				pr_err("invalid flowchain address '%s'\n",
+				       optarg);
+				return -1;
+			}
+			break;
+
+		case 'T' :
+			fc.print_when_ttl_changed = 1;
+			break;
+
+		case 'B' :
+			fc.print_result_budget = atoi(optarg);
 			break;
 
 		default :
