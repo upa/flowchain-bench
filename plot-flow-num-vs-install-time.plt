@@ -1,7 +1,7 @@
 set terminal pdf enhanced color fontscale 1
 set output "graph/graph-flow-num-vs-install-time.pdf"
 
-set ylabel "elapsed time (msec)"
+set ylabel "install time (msec)"
 set xlabel "number of installed chains"
 
 set size ratio 0.4
