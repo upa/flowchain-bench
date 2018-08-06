@@ -10,6 +10,7 @@
 #include <sys/un.h>
 #include <sys/poll.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <linux/limits.h>
@@ -353,6 +354,13 @@ void * fc_ctl_thread(void *param)
 	if (bind(sock, (struct sockaddr*)&sun, sizeof(sun)) < 0) {
 		pr_err("failed to bind unix socket to '%s'", fc->un_path);
 		perror("bind");
+		close(sock);
+		return NULL;
+	}
+
+	if (chmod(fc->un_path, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP
+		  | S_IROTH | S_IWOTH) < 0) {
+		pr_err("failed to chmod %s", fc->un_path);
 		close(sock);
 		return NULL;
 	}
