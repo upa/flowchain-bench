@@ -397,7 +397,7 @@ void usage(void) {
 	       "\t -i: probe interval (usec), default 1000 usec (1msec)\n"
 	       "\t -p: port number, default 60000\n"
 	       "\t -t: TTL of probe packets, default 64\n"
-	       "\t -P: control thread Listen port, default 60001\n"
+	       "\t -u: control unix domain socket path, default /tmp/fc.sock\n"
 	       "\t -f: FlowChain address\n"
 	       "\t -T: print if TTL is changed\n"
 		);
@@ -419,7 +419,7 @@ int main(int argc, char **argv)
 	fc.print_result_budget = 1;
 	strncpy(fc.un_path, "/tmp/fc.sock", UNIX_PATH_MAX);
 	
-	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:P:f:TB:")) != -1) {
+	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:u:f:TB:")) != -1) {
 		switch (ch) {
 		case 'm' :
 			if (strncmp(optarg, "tx", 2) == 0)
