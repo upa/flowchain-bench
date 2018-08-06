@@ -405,7 +405,6 @@ void * fc_ctl_thread(void *param)
 			perror("read");
 			continue;
 		}
-		printf("sock is %d\n", sock);
 		fc_ctl(buf, fc);
 	}
 
