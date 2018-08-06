@@ -57,6 +57,7 @@ struct fc {
 	struct in_addr src, dst;
 	int port;
 
+	int accept_mode;
 	char un_path[UNIX_PATH_MAX];
 
 	struct in_addr fc_addr; /* flowchain REST address */
@@ -335,12 +336,14 @@ int fc_ctl(char *buf, struct fc *fc)
 void * fc_ctl_thread(void *param)
 {
 	struct fc *fc = param;
-	int sock, rc;
+	int sock, a_sock, s_sock, rc;
 	struct sockaddr_un sun;
 	char buf[2048];
 	struct pollfd x;
 
-	sock = socket(AF_UNIX, SOCK_DGRAM, 0);
+	
+
+	sock = socket(AF_UNIX, fc->accept_mode ? SOCK_STREAM : SOCK_DGRAM, 0);
 	if (sock < 0) {
 		pr_err("failed to create unix domain socket for control\n");
 		perror("socket");
@@ -365,13 +368,18 @@ void * fc_ctl_thread(void *param)
 		return NULL;
 	}
 
-	x.fd = sock;
-	x.events = POLLIN;
+
+	listen(sock, 1);
+	s_sock = sock;
 
 	while(1) {
 
 		if (caught_signal)
 			break;
+
+		x.fd = sock;
+		x.events = POLLIN;
+		x.revents = 0;
 
 		/* timeout 1sec */
 		if (poll(&x, 1, 1000) < 0) {
@@ -383,15 +391,28 @@ void * fc_ctl_thread(void *param)
 		if (!x.revents & POLLIN)
 			continue;
 
+		if (fc->accept_mode && sock == s_sock) {
+			a_sock = accept(sock, NULL, 0);
+			sock = a_sock;
+		}
+
 		rc = read(sock, buf, sizeof(buf));
-		if (rc < 0) {
+		if (rc == 0 && fc->accept_mode) {
+			close(sock);
+			sock = s_sock;
+			continue;
+		} else if (rc < 0) {
 			perror("read");
 			continue;
 		}
+		printf("sock is %d\n", sock);
 		fc_ctl(buf, fc);
 	}
 
 	close(sock);
+	if (fc->accept_mode)
+		close(s_sock);
+		
 
 	return NULL;
 }
@@ -427,7 +448,7 @@ int main(int argc, char **argv)
 	fc.print_result_budget = 1;
 	strncpy(fc.un_path, "/tmp/fc.sock", UNIX_PATH_MAX);
 	
-	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:u:f:TB:")) != -1) {
+	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:u:af:TB:")) != -1) {
 		switch (ch) {
 		case 'm' :
 			if (strncmp(optarg, "tx", 2) == 0)
@@ -477,6 +498,10 @@ int main(int argc, char **argv)
 
 		case 'u' :
 			strncpy(fc.un_path, optarg, UNIX_PATH_MAX);
+			break;
+
+		case 'a' :
+			fc.accept_mode = 1;
 			break;
 
 		case 'f' :
