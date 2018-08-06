@@ -47,6 +47,6 @@ Module.symvers
 core
 
 
-fc
+fc/fc
 
 .*.swp

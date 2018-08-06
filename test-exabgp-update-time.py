@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# install time means, FIB is changed
 
 import time
 import math
@@ -49,25 +48,30 @@ def uninstall_msmt_flow(pipe) :
     return
 
 
+def destroy_flow(pipe) :
+    fc_cmd = "/destroy"
+    ctl_cmd = "GET %s\n" % fc_cmd
+    send_fc_cmd(pipe, ctl_cmd)
+
+    return
+
+
+
 def main() :
 
     # open unix domain socket for controlling fc process
     p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
     
-    gap = 10
-    for n in range (0, 1000 + gap, gap) :
-
-        for x in range(gap) :
-            install_numbered_flow(p.stdin, n + x)
-        time.sleep(10)
-
-        send_fc_cmd(p.stdin,
-                    "ECHO Install MSMT Flow with %d flows installed\n" % n)
-
+    for n in range(1, 1001) :
+        
+        send_fc_cmd(p.stdin, "ECHO Install %d Flows\n" % n)
+        for x in range(0, n - 1) :
+            install_numbered_flow(p.stdin, x)
         install_msmt_flow(p.stdin)
         time.sleep(10)
-        send_fc_cmd(p.stdin, "ECHO Uninstall MSMT Flow")
-        uninstall_msmt_flow(p.stdin)
+
+        send_fc_cmd(p.stdin, "ECHO Destroy %d Flows\n" % n)
+        destroy_flow(p.stdin)
         time.sleep(10)
 
     p.terminate()
