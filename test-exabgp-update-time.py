@@ -67,7 +67,7 @@ def main() :
     # open unix domain socket for controlling fc process
     p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
     
-    for n in range(1, 1100, 10) :
+    for n in range(1, 180, 10) :
         
         if n == 1 :
             x = 1
