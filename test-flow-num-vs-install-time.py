@@ -55,7 +55,7 @@ def main() :
     p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
     
     gap = 10
-    for n in range (0, 1000 + gap, gap) :
+    for n in range (0, 1200 + gap, gap) :
 
         for x in range(gap) :
             install_numbered_flow(p.stdin, n + x)
