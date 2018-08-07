@@ -369,6 +369,8 @@ int fc_bulk_install(int num, struct fc *fc)
 	       tv2l(after), num, tv2l(before), tv2l(after),
 	       tv2l(after) - tv2l(before));
 
+	free(urls);
+
 	if (rc < num) {
 		pr_err("Tried to install %d flows, but only %d installed\n",
 		       num, rc);

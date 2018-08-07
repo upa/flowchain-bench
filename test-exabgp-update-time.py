@@ -67,15 +67,20 @@ def main() :
     # open unix domain socket for controlling fc process
     p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
     
-    for n in range(1, 1200) :
+    for n in range(1, 1100, 10) :
         
-        send_fc_cmd(p.stdin, "ECHO Install BULK %d Flows\n" % n)
-        install_bulk_flow(p.stdin, n)
-        time.sleep(10)
+        if n == 1 :
+            x = 1
+        else :
+            x = n - 1
 
-        send_fc_cmd(p.stdin, "ECHO Destroy BULK %d Flows\n" % n)
+        send_fc_cmd(p.stdin, "ECHO Install BULK %d Flows\n" % x)
+        install_bulk_flow(p.stdin, x)
+        time.sleep(8)
+
+        send_fc_cmd(p.stdin, "ECHO Destroy BULK %d Flows\n" % x)
         destroy_flow(p.stdin)
-        time.sleep(10)
+        time.sleep(8)
 
     p.terminate()
 
