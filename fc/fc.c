@@ -295,6 +295,88 @@ int fc_url_get(char *url, struct fc *fc)
 	return 0;
 }
 
+int bulk_get(char *urls, int urlnum, struct fc *fc)
+{
+	int sock, rc, n;
+	char buf[2048];
+	struct sockaddr_in sin;
+
+	for (n = 0; n < urlnum; n++) {
+
+		sock = socket(AF_INET, SOCK_STREAM, 0);
+		if (sock < 0) {
+			pr_err("failed to create http socket\n");
+			perror("socket");
+			return sock;
+		}
+
+		sin.sin_family = AF_INET;
+		sin.sin_addr = fc->fc_addr;
+		sin.sin_port = htons(5000); /* Skimped hard coding... */
+	
+		if (connect(sock, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
+			pr_err("failed to connect flowchain REST addr\n");
+			perror("connect");
+			return -1;
+		}
+
+		snprintf(buf, sizeof(buf), "GET %s\r\n", urls + 64 * n);
+
+		rc = write(sock, buf, strlen(buf));
+
+		if (rc < 0) {
+			perror("write");
+			return rc;
+		}
+
+		close(sock);
+	}
+
+	return n;
+}
+
+
+int fc_bulk_install(int num, struct fc *fc)
+{
+	/*
+	 * generate URLs and install
+	 */
+
+	int n, rc, o3, o4;
+	char *urls;
+	struct timeval before, after;
+
+	urls = calloc(num, 64);
+	if (urls == NULL) {
+		pr_err("failed to alloc buffer for URLs\n");
+		perror("calloc");
+		return -1;
+	}
+
+	for (n = 0; n < num; n++) {
+		o4 = n % 256;
+		o3 = n / 256;
+		snprintf(urls + 64 * n, 64,
+			 "/add/45.1.%d.%d/32/none/none/user-global/fp1-fn1",
+			 o3, o4);
+	}
+
+	gettimeofday(&before, NULL);
+	rc = bulk_get(urls, num, fc);
+	gettimeofday(&after, NULL);
+	printf("TS=%ld BULK=%d START=%ld END=%ld DIFF=%ld\n",
+	       tv2l(after), num, tv2l(before), tv2l(after),
+	       tv2l(after) - tv2l(before));
+
+	if (rc < num) {
+		pr_err("Tried to install %d flows, but only %d installed\n",
+		       num, rc);
+		return -1;
+	}
+
+	return rc;
+}
+
 int fc_ctl(char *buf, struct fc *fc)
 {
 	/* process cmd string.
@@ -323,6 +405,9 @@ int fc_ctl(char *buf, struct fc *fc)
 		gettimeofday(&tv, NULL);
 		printf("TS=%ld ECHO %s\n", tv2l(tv), str);
 
+	} else if (strncmp(cmd, "BULK", 4) == 0) {
+		/* install bulked chains "BULK NUM" */
+		fc_bulk_install(atoi(str), fc);
 	} else {
 		gettimeofday(&tv, NULL);
 		printf("TS=%ld ERROR invalid command '%s'\n", tv2l(tv), cmd);
