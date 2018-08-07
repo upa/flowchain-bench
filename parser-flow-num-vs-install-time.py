@@ -14,7 +14,7 @@ def parse(fo) :
     for line in fo :
 
         if "Install MSMT Flow" in line :
-            flow_num = int(line.split(" ")[6]) + 10
+            flow_num = int(line.split(" ")[6])
             f = True
             continue
 
