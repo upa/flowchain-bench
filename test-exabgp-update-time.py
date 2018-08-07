@@ -30,6 +30,11 @@ def install_numbered_flow(pipe, flownum) :
 
     return
 
+def install_bulk_flow(pipe, num) :
+    ctl_cmd = "BULK %d" % num
+    send_fc_cmd(pipe, ctl_cmd)
+    return
+
 def install_msmt_flow(pipe) :
     prefix = "45.0.80.1/32"
     fc_cmd = "/add/%s/none/none/user-global/fp1-fn1" % prefix
@@ -62,15 +67,13 @@ def main() :
     # open unix domain socket for controlling fc process
     p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
     
-    for n in range(1, 1001) :
+    for n in range(1, 1200) :
         
-        send_fc_cmd(p.stdin, "ECHO Install %d Flows\n" % n)
-        for x in range(0, n - 1) :
-            install_numbered_flow(p.stdin, x)
-        install_msmt_flow(p.stdin)
+        send_fc_cmd(p.stdin, "ECHO Install BULK %d Flows\n" % n)
+        install_bulk_flow(p.stdin, n)
         time.sleep(10)
 
-        send_fc_cmd(p.stdin, "ECHO Destroy %d Flows\n" % n)
+        send_fc_cmd(p.stdin, "ECHO Destroy BULK %d Flows\n" % n)
         destroy_flow(p.stdin)
         time.sleep(10)
 

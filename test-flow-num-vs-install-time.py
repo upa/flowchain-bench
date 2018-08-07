@@ -62,7 +62,8 @@ def main() :
         time.sleep(10)
 
         send_fc_cmd(p.stdin,
-                    "ECHO Install MSMT Flow with %d flows installed\n" % n)
+                    "ECHO Install MSMT Flow with %d flows installed\n" %
+                    (n + gap))
 
         install_msmt_flow(p.stdin)
         time.sleep(10)

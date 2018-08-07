@@ -257,7 +257,7 @@ int fc_rx(struct fc fc)
 int fc_url_get(char *url, struct fc *fc)
 {
 	int sock, rc;
-	char buf[2048];
+	char buf[128], rbuf[128];
 	struct sockaddr_in sin;
 	struct timeval before, after;
 
@@ -277,9 +277,10 @@ int fc_url_get(char *url, struct fc *fc)
 		return -1;
 	}
 
-	snprintf(buf, sizeof(buf), "GET %s\r\n", url);
+	snprintf(buf, sizeof(buf), "GET %s\r\n\n", url);
 	gettimeofday(&before, NULL);
 	rc = write(sock, buf, strlen(buf));
+	read(sock, rbuf, sizeof(rbuf)); // wait for response
 	gettimeofday(&after, NULL);
 	if (rc < 0) {
 		perror("write");
@@ -298,7 +299,7 @@ int fc_url_get(char *url, struct fc *fc)
 int bulk_get(char *urls, int urlnum, struct fc *fc)
 {
 	int sock, rc, n;
-	char buf[2048];
+	char buf[128], rbuf[128];
 	struct sockaddr_in sin;
 
 	for (n = 0; n < urlnum; n++) {
@@ -320,10 +321,10 @@ int bulk_get(char *urls, int urlnum, struct fc *fc)
 			return -1;
 		}
 
-		snprintf(buf, sizeof(buf), "GET %s\r\n", urls + 64 * n);
+		snprintf(buf, sizeof(buf), "GET %s\r\n\n", urls + 64 * n);
 
 		rc = write(sock, buf, strlen(buf));
-
+		read(sock, rbuf, sizeof(rbuf)); // wait for response
 		if (rc < 0) {
 			perror("write");
 			return rc;
