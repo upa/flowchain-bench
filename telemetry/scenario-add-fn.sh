@@ -3,7 +3,7 @@
 add="localhost:5000/override/45.0.80.1/32/none/none/user-global"
 del="localhost:5000/delete/45.0.80.1/32"
 
-interval=20
+interval=10
 
 echo `date +%s` Start
 sleep $interval
