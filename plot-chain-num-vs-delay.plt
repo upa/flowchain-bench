@@ -1,13 +1,13 @@
 set terminal pdf enhanced color fontscale 1
 set output "graph/graph-chain-num-vs-delay.pdf"
 
-set ylabel "delay (usec)"
+set ylabel "latency (usec)"
 set xlabel "number of chained functions"
 
 set size ratio 0.4
 
 set yrange [0:600]
-set xrange [1:32]
+set xrange [0:32]
 
 set key bottom
 

@@ -6,7 +6,7 @@ import sys
 
 
 
-def parse(fo) :
+def parse(fo, over) :
 
     f = None
     a = None
@@ -27,7 +27,9 @@ def parse(fo) :
             chain_installed = int(line.split(" ")[0].split("=")[1])
             f = False
             a = False
-            print("%d\t%d" % (flow_num, chain_installed - chain_added))
+
+            if not over or flow_num > over :
+                print("%d\t%d" % (flow_num, chain_installed - chain_added))
         
 
 
@@ -36,6 +38,8 @@ if __name__ == "__main__" :
 
     with open(sys.argv[1], "r") as f :
         print("#ChainNum\tElapsedTime")
-        parse(f)
+        parse(f, None)
     
-    
+    if len(sys.argv) > 2 :
+        with open(sys.argv[2], "r") as f :
+            parse(f, 990)
