@@ -20,6 +20,7 @@
 #define UNIX_PATH_MAX 108
 #endif
 
+#define BULK_URL_LEN	256
 
 #define pr_info(fmt, ...) fprintf(stdout, "%s: " fmt, \
                                   __func__, ##__VA_ARGS__)
@@ -64,6 +65,8 @@ struct fc {
 
 	int print_when_ttl_changed;
 	int print_result_budget;
+
+	char *chain;	/* chain str for bulk install*/
 };
 
 
@@ -257,9 +260,10 @@ int fc_rx(struct fc fc)
 int fc_url_get(char *url, struct fc *fc)
 {
 	int sock, rc;
-	char buf[128], rbuf[128];
+	char buf[512];
 	struct sockaddr_in sin;
 	struct timeval before, after;
+	struct pollfd x;
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
@@ -280,7 +284,15 @@ int fc_url_get(char *url, struct fc *fc)
 	snprintf(buf, sizeof(buf), "GET %s\r\n\n", url);
 	gettimeofday(&before, NULL);
 	rc = write(sock, buf, strlen(buf));
-	read(sock, rbuf, sizeof(rbuf)); // wait for response
+
+	x.fd = sock;
+	x.events = POLLIN;
+	poll(&x, 1, 1000);
+	if (!x.revents & POLLIN)
+		pr_err("No response from Flowchain\n");
+
+
+
 	gettimeofday(&after, NULL);
 	if (rc < 0) {
 		perror("write");
@@ -299,8 +311,9 @@ int fc_url_get(char *url, struct fc *fc)
 int bulk_get(char *urls, int urlnum, struct fc *fc)
 {
 	int sock, rc, n;
-	char buf[128], rbuf[128];
+	char buf[512];
 	struct sockaddr_in sin;
+	struct pollfd x;
 
 	for (n = 0; n < urlnum; n++) {
 
@@ -321,10 +334,17 @@ int bulk_get(char *urls, int urlnum, struct fc *fc)
 			return -1;
 		}
 
-		snprintf(buf, sizeof(buf), "GET %s\r\n\n", urls + 64 * n);
+		snprintf(buf, sizeof(buf), "GET %s\r\n\n",
+			 urls + BULK_URL_LEN * n);
 
 		rc = write(sock, buf, strlen(buf));
-		read(sock, rbuf, sizeof(rbuf)); // wait for response
+
+		x.fd = sock;
+		x.events = POLLIN;
+		poll(&x, 1, 1000);
+		if (!x.revents & POLLIN)
+			pr_err("No response from Flowchain\n");
+
 		if (rc < 0) {
 			perror("write");
 			return rc;
@@ -347,7 +367,7 @@ int fc_bulk_install(int num, struct fc *fc)
 	char *urls;
 	struct timeval before, after;
 
-	urls = calloc(num, 64);
+	urls = calloc(num, BULK_URL_LEN);
 	if (urls == NULL) {
 		pr_err("failed to alloc buffer for URLs\n");
 		perror("calloc");
@@ -357,9 +377,9 @@ int fc_bulk_install(int num, struct fc *fc)
 	for (n = 0; n < num; n++) {
 		o4 = n % 256;
 		o3 = n / 256;
-		snprintf(urls + 64 * n, 64,
-			 "/add/45.1.%d.%d/32/none/none/user-global/fp1-fn1",
-			 o3, o4);
+		snprintf(urls + BULK_URL_LEN * n, BULK_URL_LEN,
+			 "/add/45.1.%d.%d/32/none/none/user-global/%s",
+			 o3, o4, fc->chain);
 	}
 
 	gettimeofday(&before, NULL);
@@ -410,6 +430,10 @@ int fc_ctl(char *buf, struct fc *fc)
 
 	} else if (strncmp(cmd, "BULK", 4) == 0) {
 		/* install bulked chains "BULK NUM" */
+		if (!fc->chain) {
+			pr_err("chaini string '-c' option is not specified\n");
+			return -1;
+		}
 		fc_bulk_install(atoi(str), fc);
 	} else {
 		gettimeofday(&tv, NULL);
@@ -428,8 +452,6 @@ void * fc_ctl_thread(void *param)
 	struct sockaddr_un sun;
 	char buf[2048];
 	struct pollfd x;
-
-	
 
 	sock = socket(AF_UNIX, fc->accept_mode ? SOCK_STREAM : SOCK_DGRAM, 0);
 	if (sock < 0) {
@@ -493,6 +515,7 @@ void * fc_ctl_thread(void *param)
 			perror("read");
 			continue;
 		}
+
 		fc_ctl(buf, fc);
 	}
 
@@ -535,7 +558,7 @@ int main(int argc, char **argv)
 	fc.print_result_budget = 1;
 	strncpy(fc.un_path, "/tmp/fc.sock", UNIX_PATH_MAX);
 	
-	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:u:af:TB:")) != -1) {
+	while ((ch = getopt(argc, argv, "m:d:s:b:i:p:t:u:af:TB:c:")) != -1) {
 		switch (ch) {
 		case 'm' :
 			if (strncmp(optarg, "tx", 2) == 0)
@@ -605,6 +628,10 @@ int main(int argc, char **argv)
 
 		case 'B' :
 			fc.print_result_budget = atoi(optarg);
+			break;
+
+		case 'c' :
+			fc.chain = optarg;
 			break;
 
 		default :
