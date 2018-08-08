@@ -61,6 +61,8 @@ def uninstall_msmt_flow(pipe) :
     return
 
 
+interval = 10
+
 def main() :
 
     # open unix domain socket for controlling fc process
@@ -72,21 +74,22 @@ def main() :
         fn_num = 1
 
     gap = 10
-    for n in range (0, 1100 + gap, gap) :
+    for n in range (0, 1000 + gap, gap) :
+
+        send_fc_cmd(p.stdin, "ECHO Uninstall MSMT Flow")
+        uninstall_msmt_flow(p.stdin)
 
         for x in range(gap) :
             install_numbered_flow(p.stdin, n + x, fn_num)
-        time.sleep(30)
+        time.sleep(interval)
 
         send_fc_cmd(p.stdin,
                     "ECHO Install MSMT Flow with %d flows installed\n" %
                     (n + gap))
 
         install_msmt_flow(p.stdin, fn_num)
-        time.sleep(30)
-        send_fc_cmd(p.stdin, "ECHO Uninstall MSMT Flow")
-        uninstall_msmt_flow(p.stdin)
-        time.sleep(30)
+        time.sleep(interval)
+
 
     p.terminate()
 
