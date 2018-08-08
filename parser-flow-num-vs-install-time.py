@@ -6,7 +6,7 @@ import sys
 
 
 
-def parse(fo, over) :
+def parse(fo, over, specified_ttl) :
 
     f = None
     a = None
@@ -24,6 +24,10 @@ def parse(fo, over) :
             continue
 
         if a :
+            ttl = int(line.split(" ")[1].split("=")[1])
+            if specified_ttl and ttl != specified_ttl :
+                continue
+
             chain_installed = int(line.split(" ")[0].split("=")[1])
             f = False
             a = False
@@ -36,9 +40,14 @@ def parse(fo, over) :
 
 if __name__ == "__main__" :
 
+    if len(sys.argv) > 3 :
+        ttl = int(sys.argv[3])
+    else :
+        ttl = None
+
     with open(sys.argv[1], "r") as f :
         print("#ChainNum\tElapsedTime")
-        parse(f, None)
+        parse(f, None, ttl)
     
     if len(sys.argv) > 2 :
         with open(sys.argv[2], "r") as f :
