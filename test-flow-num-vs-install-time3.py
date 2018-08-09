@@ -79,7 +79,7 @@ def uninstall_msmt_flow() :
     return
 
 
-interval = 10
+interval = 15
 
 def main() :
 
@@ -92,7 +92,7 @@ def main() :
     else :
         fn_num = 1
 
-    gap = 10
+    gap = 50
     start = 0
 
     if start > 0 :
