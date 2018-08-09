@@ -1,10 +1,10 @@
-set terminal pdf enhanced color fontscale 0.7
+set terminal pdf enhanced color fontscale 0.8
 set output "graph/graph-add-fn.pdf"
 
 set ylabel "throughput (Mbps)"
 set xlabel "time (sec)"
 
-set size ratio 0.3
+set size ratio 0.4
 
 set yrange [-20:160]
 set ytic 0,20
@@ -12,7 +12,7 @@ set xrange [0:80]
 set xtic 5
 
 unset grid
-set key at 79,100
+set key at 80,110
 
 set parametric
 set trange[-20:160]

@@ -24,3 +24,7 @@
 ./parser-scenario-add-fn.py \
 	output/scenario-add-fn-ifstat.txt \
 	> dat/add-fn-ifstat.txt
+
+./parser-scenario-dis-intf.py \
+	output/scenario-dis-intf.txt \
+	> dat/dis-intf.txt
