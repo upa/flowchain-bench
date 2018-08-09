@@ -7,20 +7,24 @@ import sys
 import time
 import math
 import signal
+import socket
 from subprocess import Popen, PIPE
 
 from optparse import OptionParser
 
 
-def send_fc_cmd(pipe, cmd) :
+ctl_socket = None
+
+def send_fc_cmd(cmd) :
+
+    global ctl_socket
 
     print(cmd)
-    pipe.write(cmd.encode())
-    time.sleep(0.001)
+    ctl_socket.send(cmd.encode())
+    ret = ctl_socket.recv(128)
 
 
-
-def install_numbered_flow(pipe, flownum, fn_num) :
+def install_numbered_flow(flownum, fn_num) :
 
     o3 = math.floor(flownum / 255)
     o4 = flownum % 255
@@ -35,11 +39,11 @@ def install_numbered_flow(pipe, flownum, fn_num) :
     fc_cmd = "/add/%s/none/none/user-global/%s" % (prefix, chain_str)
     ctl_cmd = "GET %s\n" % fc_cmd
 
-    send_fc_cmd(pipe, ctl_cmd)
+    send_fc_cmd(ctl_cmd)
 
     return
 
-def install_msmt_flow(pipe, fn_num) :
+def install_msmt_flow(fn_num) :
     prefix = "45.0.80.1/32"
 
     chain = []
@@ -49,38 +53,39 @@ def install_msmt_flow(pipe, fn_num) :
 
     fc_cmd = "/add/%s/none/none/user-global/%s" % (prefix, chain_str)
     ctl_cmd = "GET %s\n" % fc_cmd
-    send_fc_cmd(pipe, ctl_cmd)
+    send_fc_cmd(ctl_cmd)
 
     return
 
-def install_bulk_flow(pipe, num) :
+def install_bulk_flow(num) :
     ctl_cmd = "BULK %d" % num
-    send_fc_cmd(pipe, ctl_cmd)
+    send_fc_cmd(ctl_cmd)
     return
 
-def destroy_flow(pipe) :
+def destroy_flow() :
     fc_cmd = "/destroy"
     ctl_cmd = "GET %s\n" % fc_cmd
-    send_fc_cmd(pipe, ctl_cmd)
+    send_fc_cmd(ctl_cmd)
 
     return
 
-def uninstall_msmt_flow(pipe) :
+def uninstall_msmt_flow() :
     prefix = "45.0.80.1/32"
     fc_cmd = "/delete/%s" % prefix
     ctl_cmd = "GET %s\n" % fc_cmd
 
-    send_fc_cmd(pipe, ctl_cmd)
+    send_fc_cmd(ctl_cmd)
 
     return
 
 
-interval = 20
+interval = 10
 
 def main() :
 
-    # open unix domain socket for controlling fc process
-    p = Popen(["nc", "-uU", "/tmp/fc.sock"], bufsize = 0, stdin = PIPE)
+    global ctl_socket
+    ctl_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    ctl_socket.connect("/tmp/fc.sock")
     
     if len(sys.argv) > 1 :
         fn_num = int(sys.argv[1])
@@ -88,30 +93,28 @@ def main() :
         fn_num = 1
 
     gap = 10
-    for n in range (500, 1000 + gap, gap) :
+    start = 0
 
-        pid = Popen(["exabgp", "/home/upa/work/flowchain/exabgp.conf"]).pid
-        time.sleep(5)
-
-        send_fc_cmd(p.stdin, "ECHO ReInstall Bulk %d Flow\n" % n)
-        install_bulk_flow(p.stdin, n)
-        time.sleep(interval * 2)
-
-        send_fc_cmd(p.stdin,
-                    "ECHO Install MSMT Flow with %d flows installed\n" % n)
-
-        install_msmt_flow(p.stdin, fn_num)
+    if start > 0 :
+        send_fc_cmd("ECHO Strt to Install Bulk %d Flow\n" % start)
+        install_bulk_flow(start)
+        print("Bulk %d done\n" % start)
         time.sleep(interval)
 
-        os.kill(pid, signal.SIGKILL)
-        os.kill(pid, signal.SIGKILL)
-        time.sleep(5)
+    for n in range (start, 1000 + gap, gap) :
 
+        send_fc_cmd("ECHO Install MSMT Flow with %d flows installed\n" % n)
+        install_msmt_flow(fn_num)
+        time.sleep(interval)
 
-    p.terminate()
+        send_fc_cmd("ECHO Install more %d flows and remove msmt flow" % gap)
+        for x in range(gap) :
+            install_numbered_flow(n + x, fn_num)
+        uninstall_msmt_flow()
+        time.sleep(interval)
+        
 
-
-
+    ctl_socket.close()
 
 
 if __name__ == "__main__" :

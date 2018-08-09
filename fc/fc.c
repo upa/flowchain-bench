@@ -517,6 +517,8 @@ void * fc_ctl_thread(void *param)
 		}
 
 		fc_ctl(buf, fc);
+		if (fc->accept_mode)
+			write(sock, "done\n", 5);
 	}
 
 	close(sock);
@@ -539,6 +541,7 @@ void usage(void) {
 	       "\t -u: control unix domain socket path, default /tmp/fc.sock\n"
 	       "\t -f: FlowChain address\n"
 	       "\t -T: print if TTL is changed\n"
+	       "\t -a: use SOCK_STREAM on unix domain socket\n"
 		);
 }
 
