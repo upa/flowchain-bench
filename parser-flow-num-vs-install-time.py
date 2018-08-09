@@ -40,8 +40,8 @@ def parse(fo, over, specified_ttl) :
 
 if __name__ == "__main__" :
 
-    if len(sys.argv) > 3 :
-        ttl = int(sys.argv[3])
+    if len(sys.argv) > 2 :
+        ttl = int(sys.argv[2])
     else :
         ttl = None
 
@@ -49,6 +49,3 @@ if __name__ == "__main__" :
         print("#ChainNum\tElapsedTime")
         parse(f, None, ttl)
     
-    if len(sys.argv) > 2 :
-        with open(sys.argv[2], "r") as f :
-            parse(f, 990)

@@ -1,9 +1,16 @@
 #!/bin/bash
 
 ./parser-flow-num-vs-install-time.py \
-	output/flow-num-vs-install_per-10flows_2.txt \
-	output/flow-num-vs-install_per-10flows_over980.txt \
-	> dat/flow-num-vs-install.dat
+	output/flow-num-vs-install_chain-1_2.txt	\
+	> dat/flow-num-vs-install_chain-1.dat
+
+./parser-flow-num-vs-install-time.py \
+	output/flow-num-vs-install_chain-5_2.txt	\
+	> dat/flow-num-vs-install_chain-5.dat
+
+./parser-flow-num-vs-install-time.py \
+	output/flow-num-vs-install_chain-10_2.txt	\
+	> dat/flow-num-vs-install_chain-10.dat
 
 ./parser-chain-num-vs-delay.py \
 	output/chain-num-vs-deley.txt \

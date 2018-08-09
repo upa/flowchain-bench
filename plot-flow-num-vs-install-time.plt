@@ -7,11 +7,13 @@ set xlabel "number of installed chains"
 set size ratio 0.4
 
 set yrange [0:]
-set xrange [0:800]
+set xrange [0:1000]
 
-set key top left
+set key at 980,3700
 
-plot	"dat/flow-num-vs-install.dat" \
-	using 1:($2/1000) with l title "1 Fn chains", \
+plot	"dat/flow-num-vs-install_chain-1.dat" \
+	using 1:($2/1000) with lp title "1 Fn chains", \
 	"dat/flow-num-vs-install_chain-5.dat" \
-	using 1:($2/1000) with l title "5 Fn chains"
+	using 1:($2/1000) with lp title "5 Fn chains",	\
+	"dat/flow-num-vs-install_chain-10.dat" \
+	using 1:($2/1000) with lp title "10 Fn chains"
