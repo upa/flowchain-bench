@@ -7,8 +7,8 @@ set xlabel "number of installed chains"
 set size ratio 0.4
 
 set yrange [0:]
-set xrange [0:170]
+#set xrange [0:170]
 
-set xtic 10
+set xtic 50
 
 plot	"dat/exabgp-update-time.dat" using 1:($2/1000) with lp notitle
