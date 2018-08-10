@@ -16,10 +16,10 @@
 	output/chain-num-vs-deley.txt \
 	> dat/chain-num-vs-delay.dat
 
-./parser-exabgp-update-time.py \
-	output/exabgp-update-time_3.txt \
-	> dat/exabgp-update-time.dat
 
+./parser-exabgp-update-time.py \
+	output/exabgp-update-time-all2.txt \
+	> dat/exabgp-update-time.dat
 
 ./parser-scenario-add-fn.py \
 	output/scenario-add-fn-ifstat.txt \
