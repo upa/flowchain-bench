@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-
+import os
 import time
 import math
 import socket
+import signal
+import psutil
 from subprocess import Popen, PIPE
 
 from optparse import OptionParser
@@ -74,24 +76,32 @@ def main() :
     ctl_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     ctl_socket.connect("/tmp/fc.sock")
     
-    for n in range(1, 450, 50) :
+    for n in range(0, 110, 10) :
         
-        if n == 1 :
+        if n == 0 :
             x = 1
         else :
-            x = n - 1
+            x = n
 
-        send_fc_cmd("ECHO Install BULK %d Flows\n" % x)
-        install_bulk_flow(x)
-        time.sleep(10)
+        for y in range(30) :
 
-        send_fc_cmd("ECHO Destroy BULK %d Flows\n" % x)
-        destroy_flow()
-        time.sleep(10)
+            p = Popen(["/usr/local/bin/exabgp",
+                       "/home/upa/work/flowchain/exabgp.conf"])
+            time.sleep(10)
 
 
+            send_fc_cmd("ECHO Install BULK %d Flows\n" % x)
+            install_bulk_flow(x)
+            time.sleep(10)
 
+            os.kill(p.pid, signal.SIGINT)
+            for p in psutil.process_iter() :
+                d = p.as_dict(attrs=["pid", "cmdline"])
+                if "/home/upa/work/flowchain/flowchain.py" in d["cmdline"] :
+                    print("flowchain exist!! kill!!")
+                    os.kill(d["pid"], signal.SIGINT)
 
+            time.sleep(3)
 
 if __name__ == "__main__" :
 
