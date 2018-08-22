@@ -15,7 +15,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def gather_telemetry(sock, port_names, direct) :
 
-    ifstats = {} # ifname: [ (ts, octs_before), (ts, octs_after) ]
+    hosts = {}
+    #ifstats = {} # ifname: [ (ts, octs_before), (ts, octs_after) ]
 
     with closing(sock) :
 
@@ -25,6 +26,12 @@ def gather_telemetry(sock, port_names, direct) :
             tl.ParseFromString(msg)
 
             ts = tl.timestamp / 1000
+
+            system = tl.system_id
+            if not system in hosts :
+                hosts[system] = {}
+
+            ifstats = hosts[system]
             jnpr_ext = tl.enterprise.Extensions[tl_pb2.juniperNetworks]
             ports = jnpr_ext.Extensions[lp_pb2.jnprLogicalInterfaceExt]
 
@@ -51,8 +58,8 @@ def gather_telemetry(sock, port_names, direct) :
                 
                 bit_diff = (x[1][1] - x[0][1]) * 8
                 ts_diff = (x[1][0] - x[0][0])
-                print("%d %s: %d bps" %
-                      (time.time(), port.if_name, bit_diff / ts_diff),
+                print("%d %s %s: %d bps" %
+                      (time.time(), system, port.if_name, bit_diff / ts_diff),
                       flush = True)
 
 
