@@ -50,3 +50,5 @@ core
 fc/fc
 
 .*.swp
+
+.DS_Store
