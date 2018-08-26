@@ -14,6 +14,6 @@ set key at 32,800
 
 
 plot	"dat/dis-intf.txt" using ($0*2):($2/1000000) \
-	with lp ps 0.8 title "Fn link",	\
+	with lp ps 0.8 title "SF link",	\
 	"dat/dis-intf.txt" using ($0*2):($3/1000000) \
 	with lp ps 0.8 title "Backup link"

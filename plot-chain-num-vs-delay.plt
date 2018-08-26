@@ -2,7 +2,7 @@ set terminal pdf enhanced color fontscale 1
 set output "graph/graph-chain-num-vs-delay.pdf"
 
 set ylabel "latency (usec)"
-set xlabel "number of chained functions"
+set xlabel "number of chained service functions"
 
 set size ratio 0.4
 
